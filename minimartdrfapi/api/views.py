@@ -7,16 +7,24 @@ from django.shortcuts import get_object_or_404
 
 from api import serializers
 
+
 @api_view(['GET'])
 def apiOverview(request):
-    api_urls = {
-        'All_items': '/',
-        'Search by category': '/?category=category_name',
-        'Search by subcategory': '/?subcategory=category_name',
-        'Add': '/create',
-        'Update': '/update/pk',
-        'Delete': '/item/pk/delete'
-    }
+    if request.user.is_authenticated:
+        api_urls = {
+            'All_items': '/',
+            'Search by category': '/?category=category_name',
+            'Search by subcategory': '/?subcategory=category_name',
+            'Add': '/create',
+            'Update': '/update/pk',
+            'Delete': '/item/pk/delete'
+        }
+    else:
+        api_urls = {
+            'All_items': '/',
+            'Search by category': '/?category=category_name',
+            'Search by subcategory': '/?subcategory=category_name'
+        }
 
     return Response(api_urls)
 
@@ -55,37 +63,33 @@ def viewItems(request):
     '''
 
 
-@api_view(['POST'])
+@api_view(['POST', 'PUT'])
 def updateItems(request, pk):
-    item = Item.objects.get(pk=pk)
-    data = ItemSerializer(instance=item, data=request.data)
+    if request.method == 'POST':
+        item = Item.objects.get(pk=pk)
+        data = ItemSerializer(instance=item, data=request.data)
 
-    if data.is_valid():
-        data.save()
-        return Response(data.data)
-    else:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    
+        if data.is_valid():
+            data.save()
+            return Response(data.data)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+    elif request.method == 'PUT':
+        updateData = {}
+        item = Item.objects.get(pk=pk)
+        for key in item.__dict__: # convert item object into dictionary and iterate
+            if not key.startswith("_"):
+                if key in request.data:
+                    updateData[key] = request.data[key]
+                else:
+                    updateData[key] = getattr(item, key)
 
-@api_view(['PUT'])
-def updatePartialItems(request, pk):
-    keys = ['category', 'subcategory', 'name', 'amount']
-    item = Item.objects.get(pk=pk)
-    updateData = {}
-    updateData['category'] = item.category
-    updateData['subcategory'] = item.subcategory
-    updateData['name'] = item.name
-    updateData['amount'] = item.amount
-    for k in keys:
-        if k in request.data:
-            updateData[k] = request.data[k]
-
-    data = ItemSerializer(instance=item, data=updateData)
-    if data.is_valid():
-        data.save()
-        return Response(data.data)
-    else:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        data = ItemSerializer(instance=item, data=updateData)
+        if data.is_valid():
+            data.save()
+            return Response(data.data)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['DELETE'])

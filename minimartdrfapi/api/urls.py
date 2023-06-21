@@ -7,5 +7,4 @@ urlpatterns = [
     path('all/', views.viewItems, name='view-items'),
     path('update/<int:pk>/', views.updateItems, name='update-items'),
     path('item/<int:pk>/delete/', views.deleteItems, name='delete-items'),
-    path('updatePartial/<int:pk>', views.updatePartialItems, name='update-partial-items'),
 ]
